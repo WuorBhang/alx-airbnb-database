@@ -1,18 +1,26 @@
--- Non-correlated subquery: Properties with avg rating > 4.0
-SELECT p.*
-FROM properties p
-WHERE p.id IN (
-    SELECT r.property_id
-    FROM reviews r
-    GROUP BY r.property_id
-    HAVING AVG(r.rating) > 4.0
-);
+-- Initial unoptimized query with WHERE/AND clauses
+EXPLAIN ANALYZE
+SELECT b.*, u.*, p.*, pay.*
+FROM bookings b
+JOIN users u ON b.user_id = u.id
+JOIN properties p ON b.property_id = p.id
+JOIN payments pay ON b.id = pay.booking_id
+WHERE b.start_date > '2025-01-01'
+AND p.location = 'Paris'
+AND u.status = 'active';
 
--- Correlated subquery: Users with >3 bookings
-SELECT u.*
-FROM users u
-WHERE (
-    SELECT COUNT(*)
-    FROM bookings b
-    WHERE b.user_id = u.id
-) > 3;
+-- Optimized query with EXPLAIN
+EXPLAIN ANALYZE
+SELECT 
+    b.id, b.start_date, b.end_date,
+    u.name, u.email,
+    p.name, p.location,
+    pay.amount, pay.payment_method
+FROM bookings b
+JOIN users u ON b.user_id = u.id
+JOIN properties p ON b.property_id = p.id
+JOIN payments pay ON b.id = pay.booking_id
+WHERE b.start_date > '2025-01-01'
+AND p.location = 'Paris'
+AND u.status = 'active'
+LIMIT 100;
